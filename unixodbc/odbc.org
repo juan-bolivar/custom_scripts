@@ -1,0 +1,47 @@
+* configure odbc.ini
+
+** files location
+
+usually in /etc/odbcinst.ini
+** available files
+#+begin_src bash
+
+odbcinst -j 
+#+end_src
+
+** teradata driver 
+
+this is to configure teradata driver in the unixodbc
+#+begin_src bash
+cat /opt/teradata/client/16.20/odbc_64/odbcinst.ini >> /etc/odbcinst.ini
+
+#+end_src
+
+** data source
+
+copy the following to the /etc/odbc.ini
+
+[ODBC Data Sources]
+
+
+TDDSN=tdata.so
+
+
+
+[ODBC]
+InstallDir=/opt/teradata/client/14.10/odbc_64
+Trace=0
+TraceDll=/opt/teradata/client/14.10/odbc_64/lib/ddctrc28.so
+TraceFile=~/trace.log
+TraceAutoStop=0
+
+
+[TDDSN]
+Driver=/opt/teradata/client/16.20/odbc_64/lib/tdataodbc_sb64.so
+Description=DB DESCRIPTION
+DBCName=DB HOST
+LastUser=
+Username=
+Password=
+Database=
+

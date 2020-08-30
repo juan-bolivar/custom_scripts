@@ -1,0 +1,1 @@
+wget -O - -o /dev/null -q https://www.flybox.co/consultarGuia.aspx?txtNumerosGuia=1989601592  | grep '<td>.*</td>' | awk 'BEGIN{RS="<td>[0-9]</td>";FS="\r\n"}{print $2,$3}' | sed 's/   *//g' | sed 's/<td>//g' | sed 's/<\/td>/ /g' | grep '07/' | tr '/' ' ' | sort -k2,2 -k3,2 | tail -n 1

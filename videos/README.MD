@@ -1,0 +1,7 @@
+# Requisitos
+
+
+- dmenu
+- youtube-dl
+
+

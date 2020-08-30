@@ -1,0 +1,11 @@
+xcompmgr -c &
+
+sxhkd &
+
+ls ~/scripts/wallpapers/*/* -d | shuf > ~/scripts/helpers/wallpapers.txt
+
+dwmblocks &
+
+head -n 1 ~/scripts/helpers/wallpapers.txt | feh --bg-scale &
+
+
