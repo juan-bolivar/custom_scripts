@@ -1,0 +1,195 @@
+* intall gcloud
+
+#+begin_src bash
+
+curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-304.0.0-linux-x86_64.tar.gz > gcloud.tar.gz
+
+tar zxvf gcloud.tar.gz google-cloud-sdk
+
+#+end_src
+
+* initialize gcloud
+
+#+begin_src bash
+
+gcloud beta compute ssh --zone "us-central1-a" "worpress" --project "earnest-sight-286704"
+ 
+#+end_src
+
+* configure with paraphrase and authentication
+* update 
+#+begin_src bash
+sudo apt update && sudo apt upgrade
+#+end_src
+* swapfiles and fstab
+
+#+begin_src bash
+
+sudo fallocate -l 1G /swapfile
+sudo dd if=/dev/zero of=/swapfie bs=1024 count=1048576
+
+#+End_src
+
+
+** readable only by the root
+
+#+begin_src bash 
+sudo chmod 600 /swapfile
+#+end_src
+
+** make swapon
+
+#+begin_src bash
+sudo mkswap /swapfile
+sudo swapon /swapfile
+
+#+end_src
+
+** edit fstab
+#+begin_src bash
+sudo echo "/swapfile swap swap defaults 0 0 " >> /etc/fstab
+sudo mount -a
+
+#+end_src
+* installing LAMP
+** installing AMP
+#+begin_src bash
+sudo apt install tasksel
+sudo tasksel install lamp-server
+#+end_src
+
+** installing php addins
+
+   #+begin_src bash 
+    sudo apt install php-curl php-gd php-mbstring php-xml php-xmlrpc  
+   #+end_src
+
+* configure dns
+
+add A Record to dns to point out to the ip
+of the vps , for example
+
+remember to allways change the dns as  custom from your domain provider
+
+
+[[./temp.png]]
+
+[[./temp2.png]]
+
+
+and configure your vps ip to static , in this :
+
+[[./temp3.png]]
+
+[[./temp4.png]]
+
+* configure apache
+** configure page
+#+begin_src bash
+cp /etc/apache2/sites-available/000-default.conf www.juanbolivar.xyz.conf
+cd /etc/apache2/sites-available/ && sed -i '1i<Directory \/var\/www\/html>\n\tRequire all granted\n</Directory>' www.juanbolivar.xyz.conf
+cd /etc/apache2/sites-available/ && sed -i 's/ServerAdmin.*/ServerName juanbolivar.xyz \n\tServerAlias www.juanbolivar.xyz \n\tServeradmin juan@jbolivar.co/g'  www.juanbolivar.xyz.conf
+#+end_src
+
+** delete default and activate page
+
+#+begin_src bash
+a2dissite 000-default.conf
+a2ensite www.juanbolivar.xyz.conf
+sudo systemctl restar apache2  
+#+end_src
+* php and mysql config
+** mysql
+   After mysql8 , you have to create the user then assign privileges , otherwise it will produce an error.
+
+#+begin_src bash
+echo "CREATE DATABASE wordpress DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;" | mysql -u root
+echo "CREATE USER 'wordpressuser'@'localhost' IDENTIFIED BY 'princesaytomdb01'" | mysql -u root
+echo 'GRANT ALL ON wordpress.* TO "wordpressuser"@"localhost";' | mysql -u root
+mysql_secure_installation
+#+end_src
+
+** php 
+
+#+begin_src bash
+sed -i 's/max_input_time = 60 /max_input_time = 30/g' /etc/php/7.4/apache2/php.ini
+
+sed -i 's/upload_max_filesize = 2M/uploead_max_filesize = 20M/g' /etc/php/7.4/apache2/php.ini
+
+sed -i 's/post_max_size = 8M /post_max_size = 21M/g' /etc/php/7.4/apache2/php.ini
+#+end_src
+
+* installing wordpress
+#+begin_src bash 
+cd /var/www/html && wget https://wordpress.org/latest.tar.gz
+tar -xvf latest.tar.gz && rm latest.tar.gz && mv wordpress/* . && rm -rf wordpress
+#+end_src
+* configuring worpress
+#+begin_src bash
+cd /var/www/html && mv wp-config-sample.php wp-config.php
+#+end_src
+
+#+begin_src bash
+
+sed -i "s/'database_name_here'/'wordpress'/g"   /var/www/html/wp-config.php
+sed -i "s/'username_here'/'wordpressuser'/g"    /var/www/html/wp-config.php
+sed -i "s/'password_here'/'princesaytomdb01'/g" /var/www/html/wp-config.php
+curl https://api.wordpress.org/secret-key/1.1/salt/ WordPress.org | head -n 8 > /var/www/html/temp
+sed -i "/define( 'AUTH_KEY'/{N;N;N;N;N;N;N;N;s/.*/'HEREEEE'/}" /var/www/html/wp-config.php
+sed -i "/^'HEREEEE'/r /var/www/html/temp" /var/www/html/wp-config.php && sed -i "s/\'HEREEEE\'/''/g" /var/www/html/wp-config.php
+rm /var/www/html/temp
+
+#+end_src
+* apache tunning
+
+
+This is to tunning apache in becouse this is a static blog it should not be a full fledge server
+
+#+begin_src bash
+sed -i 's/StartServers.*[0-9][0-9]*/StartServers 1/g'                        /etc/apache2/mods-enabled/mpm_prefork.conf
+sed -i 's/MinSpareServers.*[0-9][0-9]*/MinSpareServers 2/g'                  /etc/apache2/mods-enabled/mpm_prefork.conf
+sed -i 's/MaxSpareServers.*[0-9][0-9]*/MaxSpareServers 2/g'                  /etc/apache2/mods-enabled/mpm_prefork.conf
+sed -i 's/MaxRequestWorkers.*[0-9][0-9]*/MaxRequestWorkers 21/g'             /etc/apache2/mods-enabled/mpm_prefork.conf
+sed -i 's/MaxConnectionsPerChild.*[0-9][0-9]*/MaxConnectionsPerChild 1000/g' /etc/apache2/mods-enabled/mpm_prefork.conf
+systemctl restart apache2
+#+end_src
+
+* script Validation
+  
+** first 
+#+begin_src bash
+sudo apt-get  install net-tools
+#+end_src
+
+
+** configuration
+#+begin_src bash
+curl https://raw.githubusercontent.com/richardforth/apache2buddy/master/apache2buddy.pl > ~/script.pl
+chmod +x ~/script.pl
+cd ~ && ./script.pl
+#+end_src
+
+* https
+
+Remeber to validate port 443 on your machines firewall
+
+** config
+
+#+begin_src bash
+
+sudo snap install --classic certbot
+sudo certbot certonly --apache
+
+#+end_src
+
+** renewal
+
+
+   add the following to the sudo crontab -e
+
+
+#+begin_src bash 
+
+  * 1 * * 1 certbot renew --quiet --no-self-upgrade 
+ 
+#+end_src

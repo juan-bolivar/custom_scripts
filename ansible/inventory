@@ -1,0 +1,11 @@
+[master]
+Control-1 ansible_host=174.138.56.105
+
+
+[multi]
+Control-2 ansible_host=159.65.249.230
+Control-3 ansible_host=159.65.249.224
+Control-4 ansible_host=159.65.249.234
+Control-5 ansible_host=159.65.245.27
+Control-6 ansible_host=159.65.249.242
+Control-7 ansible_host=159.65.249.236

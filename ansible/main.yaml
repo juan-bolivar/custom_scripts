@@ -1,0 +1,217 @@
+---
+- name: hadoop installation
+  hosts: all
+  tasks:
+    
+  - name: Creating user 
+    user:
+      name:  ansible
+      shell: /bin/bash
+      groups: sudo 
+      append: yes
+      state: present
+      create_home: True 
+
+  - name: SSH KeyGen command
+    shell: > 
+      ssh-keygen -q -b 2048 -t rsa -N "" -f ~/.ssh/id_rsa
+      creates="~/.ssh/id_rsa"
+
+  - name: Fetch the keyfile from the node to master
+    fetch: 
+      src: "~/.ssh/id_rsa.pub"
+      dest: "buffer/{{ ansible_hostname }}-id_rsa.pub"
+      flat: yes
+
+  - name: Copy the key add to authorized_keys using Ansible module
+    authorized_key:
+      user: root 
+      state: present
+      key: "{{ lookup('file','buffer/{{item}}-id_rsa.pub')}}"
+    when: "{{ item != ansible_hostname }}"
+    with_items: 
+      - "{{ groups['all'] }}"      
+
+  - name: installing java
+    package: 
+      name: openjdk-8-jre-headless
+      state: present
+      update_cache: yes 
+
+      
+  - name: installing scala
+    package:
+      name: scala
+      state: present
+
+  - name: downloading hadoop
+    tags: spark
+    get_url: 
+      url:  'https://downloads.apache.org/hadoop/common/hadoop-3.2.2/hadoop-3.2.2.tar.gz'
+      dest: ~/hadoop.tgz
+#      force: yes
+
+      
+  - name: unarchive hadoop
+    command: 'tar xvf ~/hadoop.tgz'
+    tags: unarchive
+
+    
+    
+  - name: move hadoop installation
+    command: 'mv hadoop-3.2.2 hadoop'
+
+     
+  - name: profile hadoop
+    command: "echo 'export PATH=/root/hadoop/bin:/root/hadoop/sbin:$PATH' >> ~/.profile ; source ~/.profile"
+
+
+  - name: bashrc hadoop 1
+    command: "echo 'export HADOOP_HOME=/root/hadoop' >> ~/.bashrc ; source ~/.bashrc"
+
+  - name: bashrc hadoop 2
+    command: "echo 'export PATH=${PATH}:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin' >> ~/.bashrc ; source ~/.bashrc"
+
+  - name: editing config file
+    lineinfile:
+      path: /root/hadoop/etc/hadoop/hadoop-env.sh
+      line: 'export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre'
+
+  - name: editing core-site.xml
+    blockinfile:
+      marker: ""
+      path: /root/hadoop/etc/hadoop/core-site.xml 
+      insertafter: "<configuration>"
+      block: |
+        <property>
+            <name>fs.default.name</name>
+            <value>hdfs://{{ hostvars[item]['ansible_facts']['hostname'] }}:9000</value>
+        </property>
+    with_items:
+      - "{{ groups['master'] }}"
+    
+  - name: editing hdfs-site.xml
+    blockinfile:
+      marker: ""
+      insertafter: "<configuration>"
+      path: /root/hadoop/etc/hadoop/hdfs-site.xml 
+      block: |
+          <property>
+              <name>dfs.namenode.name.dir</name>
+              <value>/root/hadoop/data/nameNode</value>
+          </property>
+
+          <property>
+             <name>dfs.datanode.data.dir</name>
+             <value>/root/hadoop/data/dataNode</value>
+          </property>
+          <property>
+          <name>dfs.permissions</name>
+             <value>false</value>
+          </property>
+          <property>
+             <name>dfs.replication</name>
+             <value>3</value>
+          </property>
+        
+  - name: editing mapred-site.xml
+    blockinfile:
+      marker: ""
+      insertafter: "<configuration>"
+      path: /root/hadoop/etc/hadoop/mapred-site.xml 
+      block: |
+          <property>
+              <name>mapreduce.framework.name</name>
+              <value>yarn</value>
+          </property>
+          <property>
+              <name>yarn.app.mapreduce.am.env</name>
+              <value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+          </property>
+          <property>
+              <name>mapreduce.map.env</name>
+              <value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+          </property>
+          <property>
+              <name>mapreduce.reduce.env</name>
+              <value>HADOOP_MAPRED_HOME=$HADOOP_HOME</value>
+          </property>
+
+          <property>
+              <name>yarn.app.mapreduce.am.resource.mb</name>
+              <value>{{ ansible_memtotal_mb * 0.25 }}</value>
+          </property>
+
+          <property>
+              <name>mapreduce.map.memory.mb</name>
+              <value>{{ ansible_memtotal_mb * 0.125 }}</value>
+          </property>
+
+          <property>
+             <name>mapreduce.reduce.memory.mb</name>
+             <value>{{ ansible_memtotal_mb * 0.125 }}</value>
+          </property>
+
+        
+  - name: editing yarn-site 
+    tags: yarn
+    blockinfile:
+      marker: ""
+      insertafter: "<configuration>"
+      path: /root/hadoop/etc/hadoop/yarn-site.xml 
+      block: |
+          <property>
+              <name>yarn.acl.enable</name>
+              <value>0</value>
+          </property>
+
+          <property>
+               <name>yarn.resourcemanager.hostname</name>
+               <value>{{ hostvars[item]['ansible_facts']['default_ipv4']['address'] }}</value>
+          </property>
+
+          <property>
+              <name>yarn.nodemanager.aux-services</name>
+              <value>mapreduce_shuffle</value>
+          </property>
+
+          <property>
+              <name>yarn.nodemanager.resource.memory-mb</name>
+              <value>"{{ ansible_memtotal_mb * 0.8 }}"</value>
+          </property>
+
+          <property>
+              <name>yarn.scheduler.maximum-allocation-mb</name>
+              <value>"{{ ansible_memtotal_mb * 0.8 }}"</value>
+          </property>
+
+          <property>
+              <name>yarn.scheduler.minimum-allocation-mb</name>
+              <value>"{{ ansible_memtotal_mb * 0.05 }}"</value>
+          </property>
+
+          <property>
+              <name>yarn.nodemanager.vmem-check-enabled</name>
+              <value>false</value>
+          </property>
+        
+    with_items:
+      - "{{ groups['master'] }}"
+
+      
+  - name: editing hosts
+    tags: yarn
+    lineinfile:
+      path: /etc/hosts 
+      line: "{{ hostvars[item]['ansible_facts']['default_ipv4']['address'] }} {{ hostvars[item]['ansible_facts']['hostname'] }}" 
+    with_items:
+      - "{{ groups['all'] }}"
+       
+  - name: editing workers 
+    tags: yarn
+    lineinfile:
+      path: /root/hadoop/etc/hadoop/workers 
+      line: "{{ hostvars[item]['ansible_facts']['hostname'] }}" 
+    with_items:
+      - "{{ groups['multi'] }}"
+

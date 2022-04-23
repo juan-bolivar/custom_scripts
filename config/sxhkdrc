@@ -1,54 +1,66 @@
-super + w 
+super + w
         firefox
 
-super + n 
-	st
+super + n
+        st
 
-super + s 
-	st
+super + s
+        st
 
 super + p
-	dmenu_run -b
+        dmenu_run -b
 
-super + e 
-	emacs
+super + e
+        emacs
 
 super + ctrl + n
       st "newsboat"
-      
-super+XF86Forward
-	(sed -i -f ~/scripts/helpers/forward.sed ~/scripts/helpers/wallpapers.txt ) && ( head -n 1 ~/scripts/helpers/wallpapers.txt | xargs feh --bg-scale) 
+
+super+Right
+        (sed -i -f ~/scripts/helpers/forward.sed ~/scripts/helpers/wallpapers.txt ) && ( head -n 1 ~/scripts/helpers/wallpapers.txt | xargs feh --bg-scale)
 
 
-super+XF86Back
-	(sed -i -f ~/scripts/helpers/backward.sed ~/scripts/helpers/wallpapers.txt ) && ( head -n 1 ~/scripts/helpers/wallpapers.txt | xargs feh --bg-scale)
+
+super+shift+i
+        passmenu
+
+super+Left
+        (sed -i -f ~/scripts/helpers/backward.sed ~/scripts/helpers/wallpapers.txt ) && ( head -n 1 ~/scripts/helpers/wallpapers.txt | xargs feh --bg-scale)
+
+
+super+Up
+       brightnessctl set +500 
+
+super+Down
+       brightnessctl set 500-
+
+
 
 
 XF86AudioMute
-	amixer sset Master toggle
+        amixer sset Master toggle
 
 Print
-	scrot  '/tmp/%F_%T_$wx$h.png' -e 'xclip -selection clipboard -target image/png -i $f'	
+        scrot  '/tmp/%F_%T_$wx$h.png' -e 'xclip -selection clipboard -target image/png -i $f'
 
 
 super+shift+Print
-	scrot  -u '/tmp/%F_%T_$wx$h.png' -e 'xclip -selection clipboard -target image/png -i $f'	
+        scrot  -u '/tmp/%F_%T_$wx$h.png' -e 'xclip -selection clipboard -target image/png -i $f'
 
-super+shift+e  
-	qemu-system-x86_64 -m 8192 -boot d -enable-kvm  -smp 4 -net nic -net user -hda "~/storage/images/$( ls ~/storage/images/ | dmenu)"
+super+shift+e
+        qemu-system-x86_64 -m 8192 -boot d -enable-kvm  -smp 4 -net nic -net user -hda "~/storage/images/$( ls ~/storage/images/ | dmenu)"
 
 super+shift+p
-	bash ~/scripts/sap/login.sh
+        bash ~/scripts/sap/login.sh
 
 XF86Audio{Raise,Lower}Volume
-	amixer sset Master 5%{+,-}
-
+        amixer sset Master 5%{+,-}
 
 super+shift+Prior
-	transset-df -a --inc 0.05
+        transset-df -a --inc 0.05
 
 super+shift+Next
-	transset-df -a --dec 0.05
+        transset-df -a --dec 0.05
 
 
 
